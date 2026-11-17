@@ -126,10 +126,11 @@ def test_cyrillic_name_is_preserved(web, tracker: FakeTracker) -> None:
 def test_create_campaign_validation_error(web, tracker: FakeTracker) -> None:
     response = web.post(
         "/campaigns",
-        data={"name": "", "geo": "BAD", "offer_id": "", "domain_id": "1", "geo_mode": "reject"},
+        data={"name": "", "geo": "BAD", "offer_id": "", "domain_id": "", "geo_mode": "reject"},
     )
     assert response.status_code == 400
     assert "Укажите название кампании" in response.text
+    assert "Выберите домен кампании" in response.text
     assert "BAD" in response.text
     assert len(tracker.campaigns) == 2
 

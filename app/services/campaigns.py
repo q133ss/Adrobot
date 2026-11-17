@@ -87,6 +87,8 @@ class CampaignDraft:
             errors.append(f"Некорректные гео-коды: {', '.join(invalid)}")
         if not self.offer_id:
             errors.append("Выберите оффер")
+        if not self.domain_id:
+            errors.append("Выберите домен кампании")
         if self.geo_mode not in {"accept", "reject"}:
             errors.append("Некорректный режим гео-фильтра")
         if not self.redirect_url.startswith(("http://", "https://")):

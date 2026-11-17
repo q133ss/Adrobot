@@ -51,7 +51,7 @@
 
       <div class="field">
         <label class="field__label" for="domain_id">Домен</label>
-        <select class="input" id="domain_id" name="domain_id">
+        <select class="input" id="domain_id" name="domain_id" required>
           <option value="">Выберите домен</option>
           {% for domain in domains %}
             <option value="{{ domain.id }}" {{ 'selected' if form.domain_id == domain.id }}>{{ domain.name }}</option>

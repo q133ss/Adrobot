@@ -47,6 +47,7 @@ def test_draft_validation_accumulates_errors() -> None:
         name=" ",
         geos=["MEX", "AU"],
         offer_id=0,
+        domain_id=None,
         geo_mode="whatever",
         redirect_url="google.com",
     )
@@ -56,6 +57,7 @@ def test_draft_validation_accumulates_errors() -> None:
     assert "название" in messages.lower()
     assert "MEX" in messages
     assert "оффер" in messages.lower()
+    assert "домен" in messages.lower()
     assert "http" in messages
 
 
