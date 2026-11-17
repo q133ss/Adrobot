@@ -7,7 +7,13 @@
     <h1>Кампании</h1>
     <p class="page-head__sub">Статистика за сегодня, данные из трекера Keitaro.</p>
   </div>
-  <a class="btn btn--primary" href="/campaigns/new">Новая кампания</a>
+  <div class="page-head__actions">
+    <form class="search" method="get" action="/">
+      <input class="input" type="search" name="q" value="{{ query }}" placeholder="Название, alias или ID">
+      <button class="btn" type="submit">Найти</button>
+    </form>
+    <a class="btn btn--primary" href="/campaigns/new">Новая кампания</a>
+  </div>
 </div>
 
 {% if api_error %}
@@ -48,6 +54,19 @@
 </section>
 
 <div class="panel">
+  <div class="panel__head">
+    <span class="muted">
+      {% if query %}
+        Найдено {{ matched_count }} из {{ total_count }}
+      {% else %}
+        Всего кампаний: {{ total_count }}
+        {% if matched_count > limit %}· показаны последние {{ limit }}{% endif %}
+      {% endif %}
+    </span>
+    {% if query %}
+      <a class="link" href="/">Сбросить поиск</a>
+    {% endif %}
+  </div>
   <table class="table">
     <thead>
     <tr>
@@ -87,9 +106,14 @@
       <tr>
         <td colspan="9">
           <div class="empty">
-            <p class="empty__title">Кампаний пока нет</p>
-            <p class="muted">Создайте первую кампанию — два потока и оффер соберутся автоматически.</p>
-            <a class="btn btn--primary" href="/campaigns/new">Создать кампанию</a>
+            {% if query %}
+              <p class="empty__title">Ничего не найдено</p>
+              <p class="muted">По запросу «{{ query }}» кампаний нет. <a class="link" href="/">Сбросить поиск</a></p>
+            {% else %}
+              <p class="empty__title">Кампаний пока нет</p>
+              <p class="muted">Создайте первую кампанию — два потока и оффер соберутся автоматически.</p>
+              <a class="btn btn--primary" href="/campaigns/new">Создать кампанию</a>
+            {% endif %}
           </div>
         </td>
       </tr>

@@ -43,6 +43,8 @@ from app.web.templating import flash, render
 
 router = APIRouter()
 
+DASHBOARD_LIMIT = 50
+
 
 @dataclass(slots=True)
 class CampaignRow:
@@ -158,6 +160,7 @@ def _form_context(
 @router.get("/")
 def dashboard(
     request: Request,
+    q: str = "",
     client: KeitaroClient = Depends(get_client),
     session: Session = Depends(get_session),
     settings: Settings = Depends(get_settings),
@@ -183,15 +186,29 @@ def dashboard(
             for item in local_campaigns
         ]
 
+    query = repair_utf8(q).strip()
+    total_count = len(campaigns)
+    if query:
+        lowered = query.lower()
+        campaigns = [
+            campaign
+            for campaign in campaigns
+            if lowered in campaign.name.lower()
+            or lowered in campaign.alias.lower()
+            or query == str(campaign.id)
+        ]
+    matched_count = len(campaigns)
+    displayed = sorted(campaigns, key=lambda item: item.id, reverse=True)[:DASHBOARD_LIMIT]
+
     stats_error = None
     totals: dict[int, Metrics] = {}
     try:
-        totals = StatsService(client).campaign_totals([campaign.id for campaign in campaigns])
+        totals = StatsService(client).campaign_totals([campaign.id for campaign in displayed])
     except KeitaroError as exc:
         stats_error = exc.user_message
 
     rows: list[CampaignRow] = []
-    for campaign in sorted(campaigns, key=lambda item: item.id, reverse=True):
+    for campaign in displayed:
         local = mirror.get(campaign.id)
         rows.append(
             CampaignRow(
@@ -219,6 +236,10 @@ def dashboard(
             "summary": summary,
             "api_error": api_error,
             "stats_error": stats_error,
+            "query": query,
+            "total_count": total_count,
+            "matched_count": matched_count,
+            "limit": DASHBOARD_LIMIT,
             "keitaro_url": settings.keitaro_base_url,
             "active_page": "dashboard",
         },

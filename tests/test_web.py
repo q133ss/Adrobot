@@ -24,6 +24,20 @@ def test_dashboard_lists_campaigns(web) -> None:
     assert "создана вне Adrobot" in response.text
 
 
+def test_dashboard_search_filters_by_name(web) -> None:
+    response = web.get("/?q=antivirus")
+    assert response.status_code == 200
+    assert "AU — Antivirus — push" in response.text
+    assert "MX — Crypto Wallet — search" not in response.text
+    assert "Найдено 1 из" in response.text
+
+
+def test_dashboard_search_empty_result(web) -> None:
+    response = web.get("/?q=zzzz")
+    assert response.status_code == 200
+    assert "Ничего не найдено" in response.text
+
+
 def test_dashboard_has_today_stats(web) -> None:
     response = web.get("/")
     assert "Клики" in response.text
