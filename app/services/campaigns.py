@@ -226,7 +226,18 @@ def create_campaign(
     """
     draft.validate()
 
-    existing_aliases = {campaign.alias for campaign in client.list_campaigns() if campaign.alias}
+    existing_campaigns = client.list_campaigns()
+    # Keitaro запрещает дубли названий ("Name has already used") — проверяем заранее.
+    existing_names = {campaign.name.strip().casefold() for campaign in existing_campaigns if campaign.name}
+    if draft.name.strip().casefold() in existing_names:
+        raise DraftError(
+            [
+                f"Кампания с названием «{draft.name.strip()}» уже есть в Keitaro. "
+                "Укажите другое название."
+            ]
+        )
+
+    existing_aliases = {campaign.alias for campaign in existing_campaigns if campaign.alias}
     alias = unique_alias(slugify(draft.name), existing_aliases)
 
     domain_name = None

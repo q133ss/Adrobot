@@ -37,7 +37,11 @@
       <div class="field field--wide">
         <label class="field__label" for="name">Название кампании</label>
         <input class="input" id="name" name="name" type="text" required maxlength="255"
-               value="{{ form.name or '' }}" placeholder="MX — crypto_offer — search" autofocus>
+               value="{{ form.name or '' }}" placeholder="test_ivanov_campaign1" autofocus>
+        <p class="field__hint">
+          Для тестовых кампаний — префикс <span class="mono">test_фамилия_</span>,
+          например <span class="mono">test_novikov_campaign1</span>.
+        </p>
       </div>
 
       <div class="field">

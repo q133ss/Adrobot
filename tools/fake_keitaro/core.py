@@ -235,6 +235,8 @@ class FakeTracker:
                     return 400, {"error": f"Field '{field_name}' is required"}
             if any(item["alias"] == payload["alias"] for item in self.campaigns.values()):
                 return 400, {"error": f"Campaign with alias '{payload['alias']}' already exists"}
+            if any(item["name"] == payload["name"] for item in self.campaigns.values()):
+                return 422, {"name": ["Name has already used"]}
             campaign = {
                 "id": next(self._counters["campaigns"]),
                 "name": payload["name"],

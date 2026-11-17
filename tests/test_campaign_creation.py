@@ -8,6 +8,7 @@ from app.keitaro.errors import KeitaroError
 from app.models import Campaign
 from app.services.campaigns import (
     CampaignDraft,
+    DraftError,
     build_campaign_payload,
     build_offer_stream_payload,
     build_redirect_stream_payload,
@@ -115,9 +116,17 @@ def test_create_campaign_stores_local_mirror(keitaro, session, tracker: FakeTrac
 
 
 def test_alias_is_unique(keitaro, session, tracker: FakeTracker) -> None:
-    draft = make_draft(name="MX — Crypto Wallet — search")
+    # другое название, но такой же slug, как у сидовой кампании
+    draft = make_draft(name="MX Crypto Wallet Search")
     creation = create_campaign(keitaro, Catalog(keitaro, session), session, draft, Settings(_env_file=None))
     assert creation.alias == "mx-crypto-wallet-search-2"
+
+
+def test_duplicate_name_is_rejected_before_api(keitaro, session) -> None:
+    draft = make_draft(name="MX — Crypto Wallet — search")
+    with pytest.raises(DraftError) as exc_info:
+        create_campaign(keitaro, Catalog(keitaro, session), session, draft, Settings(_env_file=None))
+    assert "уже есть" in exc_info.value.errors[0]
 
 
 def test_failed_second_flow_rolls_back_campaign(keitaro, session, tracker: FakeTracker, monkeypatch) -> None:

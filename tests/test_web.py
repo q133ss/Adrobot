@@ -96,6 +96,20 @@ def test_create_campaign_from_form(web, tracker: FakeTracker, session_factory) -
         assert mirrored.name == "MX — Form Campaign"
 
 
+def test_duplicate_campaign_name_shows_error(web, tracker: FakeTracker) -> None:
+    payload = {
+        "name": "MX — Crypto Wallet — search",
+        "geo": "MX",
+        "offer_id": "1",
+        "domain_id": "1",
+        "geo_mode": "reject",
+    }
+    response = web.post("/campaigns", data=payload)
+    assert response.status_code == 400
+    assert "уже есть в Keitaro" in response.text
+    assert len(tracker.campaigns) == 2
+
+
 def test_create_campaign_accept_mode(web, tracker: FakeTracker) -> None:
     web.post(
         "/campaigns",
