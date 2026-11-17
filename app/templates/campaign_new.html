@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% from "partials/offer_picker.html" import offer_picker %}
+{% block title %}Новая кампания · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs"><a href="/">Кампании</a> / Новая кампания</div>
+    <h1>Новая кампания</h1>
+    <p class="page-head__sub">Создаст кампанию в Keitaro, поток на Google и поток с выбранным оффером.</p>
+  </div>
+</div>
+
+{% if errors %}
+  <div class="alert alert--error">
+    <strong>Кампания не создана.</strong>
+    <ul class="alert__list">
+      {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+    </ul>
+  </div>
+{% endif %}
+{% if catalog_error %}
+  <div class="alert alert--warn">
+    <strong>Справочники Keitaro недоступны.</strong> {{ catalog_error }}
+    <span class="alert__hint">Без домена и оффера создать кампанию нельзя — проверьте ключ и адрес трекера.</span>
+  </div>
+{% endif %}
+
+<form class="form" method="post" action="/campaigns" enctype="multipart/form-data" x-data="{ mode: {{ (form.geo_mode or default_geo_mode)|tojson|forceescape }} }">
+  <div class="panel form__panel">
+    <div class="panel__head">
+      <h2>Параметры</h2>
+      <span class="muted">Все поля, кроме группы и источника, обязательны</span>
+    </div>
+
+    <div class="form__grid">
+      <div class="field field--wide">
+        <label class="field__label" for="name">Название кампании</label>
+        <input class="input" id="name" name="name" type="text" required maxlength="255"
+               value="{{ form.name or '' }}" placeholder="MX — crypto_offer — search" autofocus>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="geo">Гео-коды</label>
+        <input class="input" id="geo" name="geo" type="text" required
+               value="{{ form.geo or '' }}" placeholder="MX, AU, RO" spellcheck="false">
+        <p class="field__hint">ISO-2, через запятую. Для каждого кода одинаковое правило.</p>
+      </div>
+
+      {{ offer_picker(form.offer_id, '') }}
+
+      <div class="field">
+        <label class="field__label" for="domain_id">Домен</label>
+        <select class="input" id="domain_id" name="domain_id">
+          <option value="">Выберите домен</option>
+          {% for domain in domains %}
+            <option value="{{ domain.id }}" {{ 'selected' if form.domain_id == domain.id }}>{{ domain.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="group_id">Группа</label>
+        <select class="input" id="group_id" name="group_id">
+          <option value="">Без группы</option>
+          {% for group in groups %}
+            <option value="{{ group.id }}" {{ 'selected' if form.group_id == group.id }}>{{ group.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="source_id">Источник трафика</label>
+        <select class="input" id="source_id" name="source_id">
+          <option value="">Без источника</option>
+          {% for source in sources %}
+            <option value="{{ source.id }}" {{ 'selected' if form.source_id == source.id }}>{{ source.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <fieldset class="field field--wide field--group">
+        <legend class="field__label">Куда отправлять трафик на Google</legend>
+        <label class="radio">
+          <input type="radio" name="geo_mode" value="reject" x-model="mode">
+          <span>
+            <strong>Все, кроме выбранных гео</strong>
+            <span class="radio__hint">Рабочий вариант: целевые гео идут на оффер, остальные — на Google.</span>
+          </span>
+        </label>
+        <label class="radio">
+          <input type="radio" name="geo_mode" value="accept" x-model="mode">
+          <span>
+            <strong>Только выбранные гео</strong>
+            <span class="radio__hint">Буквально по ТЗ: трафик из списка уходит на Google, остальной — на оффер.</span>
+          </span>
+        </label>
+      </fieldset>
+    </div>
+  </div>
+
+  <aside class="panel preview">
+    <div class="panel__head"><h2>Что будет создано</h2></div>
+    <ol class="preview__list">
+      <li>
+        <span class="preview__title">Кампания</span>
+        <span class="preview__text">Тип ротации «по позиции», CPC, cookies 24 ч.</span>
+      </li>
+      <li>
+        <span class="preview__title">Поток 1 — Google</span>
+        <span class="preview__text">
+          Редирект на <span class="mono">{{ google_url }}</span>.
+          <template x-if="mode === 'reject'">
+            <span>Фильтр: страна <strong>в чёрном списке</strong> (вне списка гео).</span>
+          </template>
+          <template x-if="mode === 'accept'">
+            <span>Фильтр: страна <strong>в белом списке</strong> (только выбранные гео).</span>
+          </template>
+        </span>
+      </li>
+      <li>
+        <span class="preview__title">Поток 2 — Offers</span>
+        <span class="preview__text">Показ оффера, 100% оставшегося трафика. Офферы можно добавить после создания.</span>
+      </li>
+    </ol>
+    <button class="btn btn--primary btn--block" type="submit">Создать кампанию</button>
+    <p class="preview__hint">
+      ad_campaign_id, stream_id и прочие макросы прокинет сам Keitaro.
+    </p>
+  </aside>
+</form>
+{% endblock %}

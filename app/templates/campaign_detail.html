@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% from "partials/offer_picker.html" import offer_picker %}
+{% block title %}{{ campaign.name }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs"><a href="/">Кампании</a> / #{{ campaign.id }}</div>
+    <h1>
+      {{ campaign.name }}
+      <span class="badge badge--{{ campaign.state }}">{{ campaign.state }}</span>
+    </h1>
+    <p class="page-head__sub mono">
+      /{{ campaign.alias }}
+      {% if campaign_url %} · <a class="link" href="{{ campaign_url }}" target="_blank" rel="noopener">{{ campaign_url }}</a>{% endif %}
+    </p>
+  </div>
+  <a class="btn" href="{{ keitaro_url }}/campaigns/{{ campaign.id }}" target="_blank" rel="noopener">
+    Открыть в Keitaro ↗
+  </a>
+</div>
+
+{% if not local %}
+  <div class="alert alert--info">
+    Кампания создана вне Adrobot: домен, группа и гео в зеркале не сохранены,
+    но потоки и офферы редактируются напрямую в Keitaro.
+  </div>
+{% endif %}
+
+<dl class="meta">
+  <div class="meta__item">
+    <dt>Домен</dt>
+    <dd>{{ local.domain_name if local and local.domain_name else '—' }}</dd>
+  </div>
+  <div class="meta__item">
+    <dt>Группа</dt>
+    <dd>{{ local.group_name if local and local.group_name else '—' }}</dd>
+  </div>
+  <div class="meta__item">
+    <dt>Источник</dt>
+    <dd>{{ local.source_name if local and local.source_name else '—' }}</dd>
+  </div>
+  <div class="meta__item">
+    <dt>Гео</dt>
+    <dd>
+      {% for geo in geos %}<span class="chip">{{ geo }}</span>{% else %}<span class="muted">—</span>{% endfor %}
+    </dd>
+  </div>
+  <div class="meta__item meta__item--wide">
+    <dt>Google-поток</dt>
+    <dd class="mono">{{ redirect_url }}</dd>
+  </div>
+</dl>
+
+<div class="tabs-row">
+  <nav class="tabs" aria-label="Период">
+    {% for key, config in periods.items() %}
+      <a class="tabs__link {{ 'is-active' if key == period }}"
+         href="/campaigns/{{ campaign.id }}?period={{ key }}">{{ config[0] }}</a>
+    {% endfor %}
+  </nav>
+  <span class="tabs-row__meta">цифры Keitaro за {{ period_label|lower }}</span>
+</div>
+
+{% if stats_error %}
+  <div class="alert alert--warn"><strong>Статистика недоступна.</strong> {{ stats_error }}</div>
+{% endif %}
+{% if names_error %}
+  <div class="alert alert--warn"><strong>Не удалось загрузить названия офферов.</strong> {{ names_error }}</div>
+{% endif %}
+
+<section class="stats" aria-label="Сводка по кампании">
+  <div class="stat">
+    <span class="stat__label">Клики</span>
+    <span class="stat__value">{{ summary.clicks|number }}</span>
+  </div>
+  <div class="stat">
+    <span class="stat__label">Лиды</span>
+    <span class="stat__value">{{ summary.leads|number }}</span>
+  </div>
+  <div class="stat">
+    <span class="stat__label">CR</span>
+    <span class="stat__value">{{ summary.cr|percent }}</span>
+  </div>
+  <div class="stat">
+    <span class="stat__label">Revenue</span>
+    <span class="stat__value">{{ summary.revenue|money }}</span>
+  </div>
+  <div class="stat">
+    <span class="stat__label">Cost</span>
+    <span class="stat__value">{{ summary.cost|money }}</span>
+  </div>
+  <div class="stat">
+    <span class="stat__label">Profit</span>
+    <span class="stat__value {{ 'is-negative' if summary.profit < 0 }}">{{ summary.profit|money(signed=True) }}</span>
+  </div>
+  <div class="stat">
+    <span class="stat__label">ROI</span>
+    <span class="stat__value {{ 'is-negative' if summary.roi < 0 }}">{{ summary.roi|percent }}</span>
+  </div>
+</section>
+
+<div class="panel">
+  <div class="panel__head">
+    <h2>Офферы</h2>
+    <span class="muted">Сумма долей: <span class="mono">{{ total_share }}%</span></span>
+  </div>
+
+  {% if rows %}
+    <table class="table">
+      <thead>
+      <tr>
+        <th>Оффер</th>
+        <th class="num w-share">Доля</th>
+        <th class="num">Клики</th>
+        <th class="num">Лиды</th>
+        <th class="num">CR</th>
+        <th class="num">Revenue</th>
+        <th class="num">Cost</th>
+        <th class="num">Profit</th>
+        <th class="num">ROI</th>
+        <th class="w-actions"></th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>
+            <span class="offer-name">{{ row.name }}</span>
+            <span class="sub mono">#{{ row.offer_id }}</span>
+          </td>
+          <td class="num">
+            <form class="inline-form" method="post"
+                  action="/campaigns/{{ campaign.id }}/offers/{{ row.offer_id }}/share">
+              <input type="hidden" name="period" value="{{ period }}">
+              <input class="input input--mini" type="number" name="share" value="{{ row.share }}"
+                     min="1" max="100" aria-label="Доля оффера {{ row.offer_id }}">
+              <button class="btn btn--mini" type="submit" title="Сохранить долю">ОК</button>
+            </form>
+          </td>
+          <td class="num">{{ row.metrics.clicks|number }}</td>
+          <td class="num">{{ row.metrics.leads|number }}</td>
+          <td class="num">{{ row.metrics.cr|percent }}</td>
+          <td class="num">{{ row.metrics.revenue|money }}</td>
+          <td class="num">{{ row.metrics.cost|money }}</td>
+          <td class="num {{ 'is-negative' if row.metrics.profit < 0 }}">{{ row.metrics.profit|money(signed=True) }}</td>
+          <td class="num {{ 'is-negative' if row.metrics.roi < 0 }}">{{ row.metrics.roi|percent }}</td>
+          <td class="num">
+            <form method="post" action="/campaigns/{{ campaign.id }}/offers/{{ row.offer_id }}/delete"
+                  onsubmit="return confirm('Удалить оффер «{{ row.name|e }}» из кампании? Keitaro удалит его из потока.');">
+              <input type="hidden" name="period" value="{{ period }}">
+              <button class="btn btn--mini btn--danger" type="submit">Удалить</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot>
+      <tr>
+        <td>Итого</td>
+        <td class="num mono">{{ total_share }}%</td>
+        <td class="num">{{ summary.clicks|number }}</td>
+        <td class="num">{{ summary.leads|number }}</td>
+        <td class="num">{{ summary.cr|percent }}</td>
+        <td class="num">{{ summary.revenue|money }}</td>
+        <td class="num">{{ summary.cost|money }}</td>
+        <td class="num {{ 'is-negative' if summary.profit < 0 }}">{{ summary.profit|money(signed=True) }}</td>
+        <td class="num {{ 'is-negative' if summary.roi < 0 }}">{{ summary.roi|percent }}</td>
+        <td></td>
+      </tr>
+      </tfoot>
+    </table>
+  {% else %}
+    <div class="empty">
+      <p class="empty__title">В кампании нет потока с офферами</p>
+      <p class="muted">Добавьте оффер ниже — Adrobot создаст его в существующем потоке Keitaro.</p>
+    </div>
+  {% endif %}
+</div>
+
+<div class="grid-2">
+  <div class="panel">
+    <div class="panel__head"><h2>Добавить оффер</h2></div>
+    <form class="form form--compact" method="post" action="/campaigns/{{ campaign.id }}/offers">
+      <input type="hidden" name="period" value="{{ period }}">
+      {{ offer_picker() }}
+      <div class="field">
+        <label class="field__label" for="share">Доля, %</label>
+        <input class="input" id="share" name="share" type="number" min="1" max="100" placeholder="авто">
+        <p class="field__hint">Пусто — доли разделятся поровну, остальные пересчитаются до 100%.</p>
+      </div>
+      <button class="btn btn--primary" type="submit">Добавить в кампанию</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="panel__head"><h2>Потоки</h2></div>
+    <ul class="flows">
+      {% for stream in streams %}
+        <li class="flows__item">
+          <div class="flows__head">
+            <span class="flows__pos mono">{{ stream.position }}</span>
+            <span class="flows__name">{{ stream.name }}</span>
+            <span class="badge badge--{{ stream.state }}">{{ stream.schema }}</span>
+          </div>
+          <div class="flows__body">
+            {% if stream.action %}
+              <div class="flows__row">
+                <span class="flows__label">Редирект</span>
+                <span class="mono">{{ stream.action }}</span>
+              </div>
+            {% endif %}
+            {% if stream.is_offer_stream %}
+              <div class="flows__row">
+                <span class="flows__label">Офферы</span>
+                <span class="mono">{{ stream.offers|join(', ') }}</span>
+              </div>
+            {% endif %}
+            {% if stream.filters %}
+              {% for filter in stream.filters %}
+                <div class="flows__row">
+                  <span class="flows__label">Фильтр</span>
+                  <span>{{ filter }}</span>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="flows__row">
+                <span class="flows__label">Фильтр</span>
+                <span class="muted">без фильтров — берёт остаток трафика</span>
+              </div>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

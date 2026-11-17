@@ -1,0 +1,25 @@
+{% macro offer_picker(initial_id=None, initial_name='') %}
+<div class="field"
+     x-data="offerPicker({ initialId: {{ (initial_id if initial_id else None)|tojson|forceescape }}, initialName: {{ (initial_name or '')|tojson|forceescape }} })"
+     @click.outside="open = false">
+  <label class="field__label" for="offer-search">Оффер</label>
+  <div class="combo">
+    <input class="input" id="offer-search" type="text" x-model="query"
+           @focus="focus()" @input.debounce.250ms="search()"
+           placeholder="Название или ID оффера" autocomplete="off" spellcheck="false">
+    <input type="hidden" name="offer_id" :value="selected ? selected.id : ''">
+    <button type="button" class="combo__clear" x-show="selected" @click="clear()" aria-label="Сбросить">×</button>
+  </div>
+  <div class="combo__list" x-show="open" x-cloak>
+    <div class="combo__hint" x-show="loading">Загрузка…</div>
+    <template x-for="offer in results" :key="offer.id">
+      <button type="button" class="combo__item" @click="choose(offer)">
+        <span class="combo__name" x-text="offer.name"></span>
+        <span class="mono muted" x-text="'#' + offer.id"></span>
+      </button>
+    </template>
+    <div class="combo__hint" x-show="!loading && !results.length" x-text="error || 'Ничего не найдено'"></div>
+  </div>
+  <p class="field__hint">Список подтягивается из Keitaro, поиск по названию и ID.</p>
+</div>
+{% endmacro %}

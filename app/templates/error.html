@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs"><a href="/">Кампании</a></div>
+    <h1>{{ title }}</h1>
+  </div>
+</div>
+
+<div class="panel error-panel">
+  <p class="error-panel__message">{{ message }}</p>
+  <p class="muted">Трекер: <span class="mono">{{ keitaro_url }}</span></p>
+  <div class="error-panel__actions">
+    <a class="btn btn--primary" href="/">К списку кампаний</a>
+    <a class="btn" href="/api/health">Проверить связь с Keitaro</a>
+  </div>
+</div>
+{% endblock %}

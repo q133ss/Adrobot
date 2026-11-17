@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="preload" href="{{ url_for('static', path='vendor/alpine.min.js') }}" as="script">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%231d6b4f'/><path d='M9 24 16 8l7 16h-3.4l-1.5-3.7h-4.2L12.4 24H9Zm5.9-6.4h2.2L16 14.2l-1.1 3.4Z' fill='white'/></svg>">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar__inner">
+    <a class="brand" href="/">
+      <span class="brand__mark" aria-hidden="true">A</span>
+      <span class="brand__name">Adrobot</span>
+    </a>
+    <nav class="nav">
+      <a href="/" class="nav__link {{ 'is-active' if active_page == 'dashboard' }}">Кампании</a>
+      <a href="/campaigns/new" class="nav__link {{ 'is-active' if active_page == 'new' }}">Новая кампания</a>
+    </nav>
+    <div class="topbar__meta" title="Адрес трекера Keitaro">
+      <span class="dot {{ 'dot--bad' if api_error is defined and api_error else 'dot--ok' }}"></span>
+      <span class="mono">{{ keitaro_url|replace('https://', '')|replace('http://', '') }}</span>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  {% for flash in flashes %}
+    <div class="alert alert--{{ flash.level }}" role="status">{{ flash.message }}</div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <span>Adrobot · внутренняя панель для Keitaro</span>
+  <a class="footer__link" href="/api/docs">API</a>
+</footer>
+
+<script src="{{ url_for('static', path='js/app.js') }}" defer></script>
+<script src="{{ url_for('static', path='vendor/alpine.min.js') }}" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

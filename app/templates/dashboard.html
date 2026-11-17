@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Кампании · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Кампании</h1>
+    <p class="page-head__sub">Статистика за сегодня, данные из трекера Keitaro.</p>
+  </div>
+  <a class="btn btn--primary" href="/campaigns/new">Новая кампания</a>
+</div>
+
+{% if api_error %}
+  <div class="alert alert--error">
+    <strong>Keitaro недоступен.</strong> {{ api_error }}
+    <span class="alert__hint">Показаны кампании, сохранённые в локальном зеркале.</span>
+  </div>
+{% endif %}
+{% if stats_error %}
+  <div class="alert alert--warn"><strong>Статистика недоступна.</strong> {{ stats_error }}</div>
+{% endif %}
+
+<section class="stats" aria-label="Сводка за сегодня">
+  <div class="stat">
+    <span class="stat__label">Клики</span>
+    <span class="stat__value">{{ summary.clicks|number }}</span>
+  </div>
+  <div class="stat">
+    <span class="stat__label">Лиды</span>
+    <span class="stat__value">{{ summary.leads|number }}</span>
+  </div>
+  <div class="stat">
+    <span class="stat__label">Конверсия</span>
+    <span class="stat__value">{{ summary.cr|percent }}</span>
+  </div>
+  <div class="stat">
+    <span class="stat__label">Revenue</span>
+    <span class="stat__value">{{ summary.revenue|money }}</span>
+  </div>
+  <div class="stat">
+    <span class="stat__label">Profit</span>
+    <span class="stat__value {{ 'is-negative' if summary.profit < 0 }}">{{ summary.profit|money(signed=True) }}</span>
+  </div>
+  <div class="stat">
+    <span class="stat__label">ROI</span>
+    <span class="stat__value {{ 'is-negative' if summary.roi < 0 }}">{{ summary.roi|percent }}</span>
+  </div>
+</section>
+
+<div class="panel">
+  <table class="table">
+    <thead>
+    <tr>
+      <th class="w-id">ID</th>
+      <th>Кампания</th>
+      <th>Гео</th>
+      <th class="num">Офферы</th>
+      <th class="num">Клики</th>
+      <th class="num">Лиды</th>
+      <th class="num">Revenue</th>
+      <th class="num">Profit</th>
+      <th class="num">ROI</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for row in rows %}
+      <tr>
+        <td class="mono muted">{{ row.id }}</td>
+        <td>
+          <a class="link" href="/campaigns/{{ row.id }}">{{ row.name }}</a>
+          <div class="sub mono">
+            /{{ row.alias }}
+            {% if not row.tracked %}<span class="tag">создана вне Adrobot</span>{% endif %}
+          </div>
+        </td>
+        <td>
+          {% for geo in row.geos %}<span class="chip">{{ geo }}</span>{% else %}<span class="muted">—</span>{% endfor %}
+        </td>
+        <td class="num">{{ row.offers_count if row.offers_count is not none else '—' }}</td>
+        <td class="num">{{ row.metrics.clicks|number }}</td>
+        <td class="num">{{ row.metrics.leads|number }}</td>
+        <td class="num">{{ row.metrics.revenue|money }}</td>
+        <td class="num {{ 'is-negative' if row.metrics.profit < 0 }}">{{ row.metrics.profit|money(signed=True) }}</td>
+        <td class="num {{ 'is-negative' if row.metrics.roi < 0 }}">{{ row.metrics.roi|percent }}</td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="9">
+          <div class="empty">
+            <p class="empty__title">Кампаний пока нет</p>
+            <p class="muted">Создайте первую кампанию — два потока и оффер соберутся автоматически.</p>
+            <a class="btn btn--primary" href="/campaigns/new">Создать кампанию</a>
+          </div>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
