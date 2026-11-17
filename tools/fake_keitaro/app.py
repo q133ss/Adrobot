@@ -31,9 +31,12 @@ async def admin_api(path: str, request: Request):
         except ValueError:
             body = None
 
+    full_path = "/" + path
+    if request.url.query:
+        full_path = f"{full_path}?{request.url.query}"
     status, payload = tracker.handle(
         request.method,
-        "/" + path,
+        full_path,
         body,
         dict(request.headers),
     )

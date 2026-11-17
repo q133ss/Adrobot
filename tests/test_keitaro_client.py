@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy import select
 
 from app.keitaro.client import KeitaroClient
+from app.keitaro.entities import KeitaroOffer
 from app.keitaro.errors import (
     KeitaroAPIError,
     KeitaroNotFound,
@@ -16,6 +17,17 @@ from app.keitaro.errors import (
 from app.models import ApiCall
 from app.services.audit import ApiCallRecorder
 from tools.fake_keitaro.core import FakeTracker, mock_transport
+
+
+def test_offer_country_accepts_empty_string() -> None:
+    """Реальный Keitaro отдаёт country: "" вместо []."""
+    offer = KeitaroOffer.model_validate({"id": 1, "name": "x", "country": ""})
+    assert offer.country == []
+
+
+def test_offer_country_accepts_csv_string() -> None:
+    offer = KeitaroOffer.model_validate({"id": 1, "name": "x", "country": "MX, AU"})
+    assert offer.country == ["MX", "AU"]
 
 
 def test_list_campaigns_uses_api_key(tracker: FakeTracker) -> None:
@@ -155,12 +167,42 @@ def test_report_request_shape(tracker: FakeTracker) -> None:
     assert captured["filters"][0]["name"] == "campaign_id"
 
 
-def test_resolve_action_type_prefers_existing(tracker: FakeTracker) -> None:
+def test_action_types_follow_real_keitaro(tracker: FakeTracker) -> None:
     client = KeitaroClient("http://fake", "demo-api-key", transport=mock_transport(tracker))
-    assert client.resolve_action_type(
-        preferred="show_landing", contains=("landing",), fallback="x"
-    ) == "show_landing"
-    assert client.resolve_action_type(
-        preferred="unknown", contains=("redirect",), fallback="x"
-    ) == "redirect"
+    assert client.redirect_action_type() == "http"
+    # show_landing в /streams_actions реального Keitaro нет — используем http
+    assert client.offers_action_type() == "http"
     client.close()
+
+
+def test_offers_action_prefers_show_landing_when_available() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=[
+                {"key": "http", "name": "HttpRedirect", "type": "redirect"},
+                {"key": "show_landing", "name": "ShowLanding", "type": "other"},
+            ],
+        )
+
+    client = KeitaroClient("http://fake", "demo-api-key", transport=httpx.MockTransport(handler))
+    assert client.offers_action_type() == "show_landing"
+    client.close()
+
+
+def test_groups_require_type_param(tracker: FakeTracker) -> None:
+    client = KeitaroClient("http://fake", "demo-api-key", transport=mock_transport(tracker))
+    groups = client.list_groups("campaigns")
+    assert groups
+    client.close()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "type=" not in str(request.url):
+            return httpx.Response(400, json={"error": "Param 'type' is required"})
+        return httpx.Response(200, json=[])
+
+    broken = KeitaroClient("http://fake", "demo-api-key", transport=httpx.MockTransport(handler))
+    assert broken.list_groups() == []
+    with pytest.raises(KeitaroValidationError):
+        broken.request("GET", "/groups")
+    broken.close()

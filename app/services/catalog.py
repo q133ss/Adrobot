@@ -36,7 +36,13 @@ class Catalog:
         return self._load("domains", self._client.list_domains, KeitaroDomain, refresh)
 
     def groups(self, *, refresh: bool = False) -> list[KeitaroGroup]:
-        return self._load("groups", self._client.list_groups, KeitaroGroup, refresh)
+        # Keitaro требует type=campaigns|offers; для кампаний нужны первые.
+        return self._load(
+            "campaign_groups",
+            lambda: self._client.list_groups("campaigns"),
+            KeitaroGroup,
+            refresh,
+        )
 
     def sources(self, *, refresh: bool = False) -> list[KeitaroSource]:
         return self._load("sources", self._client.list_sources, KeitaroSource, refresh)
@@ -60,7 +66,7 @@ class Catalog:
         return {offer.id: offer.name for offer in self.offers()}
 
     def invalidate(self, *keys: str) -> None:
-        for key in keys or ("domains", "groups", "sources", "offers"):
+        for key in keys or ("domains", "campaign_groups", "sources", "offers"):
             row = self._session.get(ReferenceCache, key)
             if row is not None:
                 self._session.delete(row)

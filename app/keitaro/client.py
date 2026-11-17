@@ -214,25 +214,36 @@ class KeitaroClient:
             self._actions = [StreamAction.model_validate(item) for item in data]
         return self._actions
 
-    def resolve_action_type(
-        self,
-        *,
-        preferred: str,
-        contains: tuple[str, ...],
-        fallback: str,
-    ) -> str:
-        """Подобрать action_type из /streams_actions (набор зависит от версии)."""
+    def redirect_action_type(self) -> str:
+        """Тип действия для редиректа: в Keitaro это ключ `http` (HttpRedirect)."""
         try:
             actions = self.stream_actions()
         except KeitaroError:
-            return preferred
+            return "http"
         keys = [action.key for action in actions if action.key]
-        if preferred in keys:
-            return preferred
-        for key in keys:
-            if any(fragment in key for fragment in contains):
-                return key
-        return fallback
+        if "http" in keys:
+            return "http"
+        for action in actions:
+            if action.type == "redirect":
+                return action.key
+        return "http"
+
+    def offers_action_type(self) -> str:
+        """Тип действия для потока с офферами (schema=landings).
+
+        В текущих версиях Keitaro отдельного `show_landing` в /streams_actions
+        нет, поток с офферами принимает `http`. Если в другой версии есть
+        `show_landing`/`show_offer` — используем его.
+        """
+        try:
+            actions = self.stream_actions()
+        except KeitaroError:
+            return "http"
+        keys = [action.key for action in actions if action.key]
+        for candidate in ("show_landing", "show_offer", "show_offers"):
+            if candidate in keys:
+                return candidate
+        return self.redirect_action_type()
 
     # ------------------------------------------------------- справочники
 
@@ -244,8 +255,9 @@ class KeitaroClient:
         data = _as_list(self.request("GET", "/domains"))
         return [KeitaroDomain.model_validate(item) for item in data]
 
-    def list_groups(self) -> list[KeitaroGroup]:
-        data = _as_list(self.request("GET", "/groups"))
+    def list_groups(self, group_type: str = "campaigns") -> list[KeitaroGroup]:
+        """`type` обязателен: campaigns или offers (иначе Keitaro отвечает 400)."""
+        data = _as_list(self.request("GET", "/groups", params={"type": group_type}))
         return [KeitaroGroup.model_validate(item) for item in data]
 
     def list_sources(self) -> list[KeitaroSource]:
@@ -292,7 +304,7 @@ class KeitaroClient:
 
     def ping(self) -> bool:
         try:
-            self.request("GET", "/groups")
+            self.request("GET", "/domains")
         except KeitaroError:
             return False
         return True

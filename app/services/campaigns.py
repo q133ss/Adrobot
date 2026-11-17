@@ -242,14 +242,8 @@ def create_campaign(
         source = next((item for item in catalog.sources() if item.id == draft.source_id), None)
         source_name = source.name if source else None
 
-    redirect_action = client.resolve_action_type(
-        preferred="redirect", contains=("redirect",), fallback="redirect"
-    )
-    offers_action = client.resolve_action_type(
-        preferred="show_landing",
-        contains=("landing", "offer"),
-        fallback="show_landing",
-    )
+    redirect_action = client.redirect_action_type()
+    offers_action = client.offers_action_type()
 
     campaign = client.create_campaign(build_campaign_payload(draft, alias))
 

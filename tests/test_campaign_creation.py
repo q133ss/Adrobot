@@ -81,7 +81,7 @@ def test_create_campaign_creates_campaign_and_two_flows(keitaro, session, tracke
 
     assert creation.campaign.id in tracker.campaigns
     assert creation.alias == "mx-test-campaign"
-    assert creation.action_types == {"redirect": "redirect", "offers": "show_landing"}
+    assert creation.action_types == {"redirect": "http", "offers": "http"}
 
     streams = [stream for stream in tracker.streams.values() if stream["campaign_id"] == creation.campaign.id]
     assert len(streams) == 2

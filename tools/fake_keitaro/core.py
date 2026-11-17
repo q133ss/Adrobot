@@ -17,8 +17,13 @@ from typing import Any
 import httpx
 
 DEFAULT_API_KEY = "demo-api-key"
-OFFER_ACTIONS = ["show_landing", "show_offer"]
-REDIRECT_ACTIONS = ["redirect", "http_redirect"]
+# Как в реальном Keitaro: отдельного show_landing в /streams_actions нет,
+# редирект — это ключ "http"; поток с офферами тоже принимает "http".
+STREAM_ACTIONS = [
+    {"key": "http", "name": "HttpRedirect", "type": "redirect"},
+    {"key": "meta", "name": "Meta", "type": "redirect"},
+    {"key": "show_text", "name": "ShowText", "type": "other"},
+]
 
 _CAMPAIGN_STREAMS_RE = re.compile(r"^/campaigns/(\d+)/streams$")
 _CAMPAIGN_RE = re.compile(r"^/campaigns/(\d+)$")
@@ -175,16 +180,17 @@ class FakeTracker:
         if api_key != self.api_key:
             return 401, {"error": "Invalid API key"}
 
+        path, _, query = path.partition("?")
+
         if path == "/streams_actions":
-            return 200, [
-                {"key": key, "name": key.replace("_", " ").title()}
-                for key in REDIRECT_ACTIONS + OFFER_ACTIONS
-            ]
+            return 200, copy.deepcopy(STREAM_ACTIONS)
         if path == "/offers" and method == "GET":
             return 200, copy.deepcopy(self.data["offers"])
         if path == "/domains" and method == "GET":
             return 200, copy.deepcopy(self.data["domains"])
         if path == "/groups" and method == "GET":
+            if "type=" not in query:
+                return 400, {"error": "Param 'type' is required"}
             return 200, copy.deepcopy(self.data["groups"])
         if path == "/traffic_sources" and method == "GET":
             return 200, copy.deepcopy(self.data["sources"])
@@ -435,6 +441,8 @@ def mock_transport(tracker: FakeTracker) -> httpx.BaseTransport:
                 body = json.loads(request.content)
             except ValueError:
                 body = None
+        if request.url.query:
+            path = f"{path}?{request.url.query}"
         status, payload = tracker.handle(request.method, path, body, dict(request.headers))
         return httpx.Response(status, json=payload)
 

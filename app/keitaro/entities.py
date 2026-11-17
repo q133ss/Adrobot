@@ -82,6 +82,15 @@ class KeitaroOffer(APIModel):
     country: list[str] = []
     action_payload: Any = None
 
+    @field_validator("country", mode="before")
+    @classmethod
+    def _as_country_list(cls, value: Any) -> list[str]:
+        if value is None or value == "":
+            return []
+        if isinstance(value, str):
+            return [part.strip() for part in value.split(",") if part.strip()]
+        return [str(item) for item in value]
+
 
 class KeitaroDomain(APIModel):
     id: int
@@ -110,3 +119,4 @@ class KeitaroSource(APIModel):
 class StreamAction(APIModel):
     key: str = ""
     name: str = ""
+    type: str = ""
